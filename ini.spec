@@ -5,7 +5,7 @@ a = Analysis(
     ['ini.py'],
     pathex=[],
     binaries=[],
-    datas=[('config.ini', '.'), ('D:/Coding/INIArkitect/inis', 'inis')],
+    datas=[('config.ini', '.'), ('inis', 'inis')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
