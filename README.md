@@ -15,12 +15,13 @@
 
 ## ⚙️ Configuration
 
-Edit `config.ini` in the application root to set your paths:
+Settings are now managed directly inside the app, or via `config.json` in the application root:
 
-```ini
-[Settings]
-destination_dir = C:\Path\To\ARK\Engine\Config
-source_dir = C:\Path\To\Your\INI\Presets
+```json
+{
+    "destination_dir": "C:\\Path\\To\\ARK\\Engine\\Config",
+    "source_dir": "C:\\Path\\To\\Your\\INI\\Presets"
+}
 ```
 
 - `destination_dir`: Where the active `Game.ini` and `GameUserSettings.ini` reside.

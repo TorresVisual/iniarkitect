@@ -8,7 +8,7 @@ build_exe_options = {
     "include_files": [
         "iniarkitect.ico",
         "inis/",
-        "config.ini"
+        "config.json"
     ],
 }
 
