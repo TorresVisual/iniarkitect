@@ -1,42 +1,47 @@
-# INIArkitect
+# INIArkitect 2.0
 
-INIArkitect is a tool designed to manage and modify INI configuration files for ARK: Survival Evolved. It provides a streamlined way to handle configuration changes and maintain consistency across your ARK server or client installations.
+**INIArkitect** is a premium management tool for ARK: Survival Evolved configuration files. It provides a sleek, modern interface to effortlessly swap between different INI presets while ensuring your data is safe with automatic backups.
 
-## Features
+![INIArkitect Mockup](https://raw.githubusercontent.com/username/repo/main/assets/mockup.png) *(Placeholder for your mockup)*
 
-- Simple configuration management through `config.ini`
-- Source and destination directory configuration
-- Easy modification of ARK configuration files
+## ✨ New Features
 
-## Configuration
+- 🌑 **Modern Dark UI**: Powered by `customtkinter` for a premium, high-tech look.
+- 💾 **Auto-Backups**: Automatically creates timestamped backups of your current INIs before applying new ones.
+- ⚡ **Dynamic Presets**: Automatically detects folders in your source directory and generates action buttons.
+- 📂 **Quick Navigation**: One-click access to your source and destination folders.
+- 🔄 **Live Refresh**: Update your preset list without restarting the app.
+- 🛡️ **Robust Config**: Reliable handling of source and destination paths via `config.ini`.
 
-The tool uses a `config.ini` file to manage its settings:
+## ⚙️ Configuration
+
+Edit `config.ini` in the application root to set your paths:
 
 ```ini
 [Settings]
-destination_dir = D:\SteamLibrary\steamapps\common\ARK\Engine\Config
-source_dir = D:\Coding\INIArkitect\inis
+destination_dir = C:\Path\To\ARK\Engine\Config
+source_dir = C:\Path\To\Your\INI\Presets
 ```
 
-- `destination_dir`: The path to your ARK Engine Config directory
-- `source_dir`: The path where your INI files are stored
+- `destination_dir`: Where the active `Game.ini` and `GameUserSettings.ini` reside.
+- `source_dir`: A folder containing subfolders (presets), each with its own `.ini` files.
 
-## Usage
+## 🚀 Getting Started
 
-1. Configure your `config.ini` file with the appropriate paths
-2. Place your INI files in the source directory
-3. Run the application to apply the configurations
+1. **Configure**: Set your paths in `config.ini`.
+2. **Organize**: Place your INI presets in folders within your source directory (e.g., `inis/PVP`, `inis/PVE`, `inis/Boosted`).
+3. **Run**: Launch `INIArkitect` and click a preset to apply it.
 
-## Requirements
+## 🛠️ Requirements
 
-- Windows operating system
-- ARK: Survival Evolved installation
-- Access to the ARK Engine Config directory
+- **Windows 10/11**
+- **ARK: Survival Evolved**
+- Python 3.10+ (if running from source)
 
-## License
+## 📜 License
 
-This project is open source and available under the MIT License.
+Distributed under the MIT License. See `LICENSE` for more information.
 
-## Contributing
+## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. 
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.

@@ -1,9 +1,12 @@
 import os
 import shutil
 import sys
-import tkinter as tk
-from tkinter import messagebox
 import configparser
+import customtkinter as ctk
+from tkinter import messagebox
+from datetime import datetime
+from pathlib import Path
+import subprocess
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -13,96 +16,174 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-def load_config():
-    config = configparser.ConfigParser()
-    config_path = resource_path('config.ini')
-    config.read(config_path)
-    # Your fixed destination path
-    destination_dir = r"C:\Program Files (x86)\Steam\steamapps\common\ARK\Engine\Config"
-    # The bundled or local 'inis' folder
-    source_dir = resource_path('inis')
-    return destination_dir, source_dir
+class INIArkitect(ctk.CTk):
+    def __init__(self):
+        super().__init__()
 
-def apply_ini(selected_folder, source_dir, destination_dir):
-    source_folder = os.path.join(source_dir, selected_folder)
-    if not os.path.exists(source_folder):
-        messagebox.showerror("Error", "The selected INI does not exist.")
-        return
-    try:
-        for filename in os.listdir(source_folder):
-            shutil.copy(os.path.join(source_folder, filename), destination_dir)
-        messagebox.showinfo("Success", "INI applied successfully.")
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to copy files:\n{e}")
+        self.title("INI ARKitect")
+        self.geometry("600x500")
+        
+        # Set appearance
+        ctk.set_appearance_mode("Dark")
+        ctk.set_default_color_theme("blue")
 
-def create_gui():
-    root = tk.Tk()
-    root.title("INI ARKitect")
+        # Set icon
+        try:
+            icon_path = resource_path("iniarkitect.ico")
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+        except Exception as e:
+            print(f"Warning: failed to load icon: {e}")
 
+        # Load configuration
+        self.dest_dir, self.src_dir = self.load_config()
+        
+        # UI Setup
+        self.setup_ui()
+        
+    def load_config(self):
+        config = configparser.ConfigParser()
+        # Look for config.ini in the same directory as the script/exe
+        config_path = os.path.join(os.path.abspath("."), 'config.ini')
+        
+        if not os.path.exists(config_path):
+            # Fallback to bundled config if not found externally
+            config_path = resource_path('config.ini')
 
-    # Use iconphoto instead of iconbitmap
-    from tkinter import PhotoImage
-    icon_path = resource_path("iniarkitect.ico")
-    try:
-        icon_img = PhotoImage(file=icon_path)
-        root.iconphoto(False, icon_img)
-    except Exception as e:
-        print(f"Warning: failed to load icon: {e}")
+        config.read(config_path)
+        
+        dest = config.get('Settings', 'destination_dir', fallback=None)
+        src = config.get('Settings', 'source_dir', fallback=None)
+        
+        # Final fallbacks if config is missing or incomplete
+        if not dest:
+            dest = resource_path('Config')
+        if not src:
+            src = resource_path('inis')
+            
+        return Path(dest), Path(src)
 
-    root.configure(bg="#333333")
+    def setup_ui(self):
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
 
-    window_width = 400
-    window_height = 200
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    x = (screen_width - window_width) // 2
-    y = (screen_height - window_height) // 2
-    root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        # Header
+        self.header_frame = ctk.CTkFrame(self, corner_radius=0)
+        self.header_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        
+        self.title_label = ctk.CTkLabel(self.header_frame, text="INI ARKitect", font=ctk.CTkFont(size=24, weight="bold"))
+        self.title_label.pack(pady=5)
+        
+        self.subtitle_label = ctk.CTkLabel(self.header_frame, text="Manage your ARK configurations with ease", font=ctk.CTkFont(size=12))
+        self.subtitle_label.pack(pady=(0, 10))
 
-    button_frame = tk.Frame(root, bg="#333333", relief="flat")
-    button_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        # Main Content Area
+        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Available Presets")
+        self.scroll_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        self.scroll_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-    destination_dir, source_dir = load_config()
+        self.populate_presets()
 
-    def create_button(folder):
-        return tk.Button(
-            button_frame,
-            text=folder,
-            width=12,
-            height=2,
-            font=("Acumin Pro Regular", 12),
-            bg="#555555",
-            fg="white",
-            relief="raised",
-            bd=0,
-            command=lambda: apply_ini(folder, source_dir, destination_dir)
-        )
+        # Footer / Status
+        self.footer_frame = ctk.CTkFrame(self, corner_radius=0, height=40)
+        self.footer_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        
+        self.status_label = ctk.CTkLabel(self.footer_frame, text="Ready", font=ctk.CTkFont(size=11))
+        self.status_label.pack(side="left", padx=10)
 
-    # Get all subfolders inside source_dir that contain any .ini files
-    folders_with_inis = [
-        folder for folder in os.listdir(source_dir)
-        if os.path.isdir(os.path.join(source_dir, folder)) and
-        any(filename.endswith(".ini") for filename in os.listdir(os.path.join(source_dir, folder)))
-    ]
+        self.btn_refresh = ctk.CTkButton(self.footer_frame, text="Refresh", command=self.populate_presets, width=60, height=24, font=ctk.CTkFont(size=10))
+        self.btn_refresh.pack(side="right", padx=10, pady=5)
 
-    folders_with_inis.sort(key=lambda x: x != "Default")
+        # Action Buttons
+        self.actions_frame = ctk.CTkFrame(self, corner_radius=0)
+        self.actions_frame.grid(row=3, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        
+        self.btn_open_src = ctk.CTkButton(self.actions_frame, text="Open Source", command=self.open_source, width=120)
+        self.btn_open_src.pack(side="left", padx=10, pady=10)
+        
+        self.btn_open_dest = ctk.CTkButton(self.actions_frame, text="Open Destination", command=self.open_dest, width=120)
+        self.btn_open_dest.pack(side="left", padx=10, pady=10)
 
-    num_buttons = len(folders_with_inis)
-    num_columns = 3
-    num_rows = (num_buttons + num_columns - 1) // num_columns
+    def populate_presets(self):
+        # Clear existing buttons
+        for widget in self.scroll_frame.winfo_children():
+            if isinstance(widget, ctk.CTkButton):
+                widget.destroy()
 
-    for i in range(num_rows):
-        button_frame.grid_rowconfigure(i, weight=1)
-    for i in range(num_columns):
-        button_frame.grid_columnconfigure(i, weight=1)
+        if not self.src_dir.exists():
+            ctk.CTkLabel(self.scroll_frame, text="Source directory not found!").grid(row=0, column=0, columnspan=3, pady=20)
+            return
 
-    for idx, folder in enumerate(folders_with_inis):
-        button = create_button(folder)
-        row = idx // num_columns
-        column = idx % num_columns
-        button.grid(row=row, column=column, padx=5, pady=5, sticky="nsew")
+        folders = [
+            f for f in os.listdir(self.src_dir)
+            if (self.src_dir / f).is_dir() and any((self.src_dir / f).glob("*.ini"))
+        ]
+        folders.sort(key=lambda x: x.lower() != "default")
 
-    root.mainloop()
+        for idx, folder in enumerate(folders):
+            btn = ctk.CTkButton(
+                self.scroll_frame, 
+                text=folder, 
+                command=lambda f=folder: self.apply_ini(f),
+                height=40
+            )
+            btn.grid(row=idx // 3, column=idx % 3, padx=5, pady=5, sticky="nsew")
+
+    def backup_inis(self):
+        if not self.dest_dir.exists():
+            return False, "Destination directory does not exist."
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_parent = self.dest_dir.parent / "Backups"
+        backup_dir = backup_parent / f"backup_{timestamp}"
+        
+        try:
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            for ini_file in self.dest_dir.glob("*.ini"):
+                shutil.copy2(ini_file, backup_dir)
+            return True, f"Backup created: {backup_dir.name}"
+        except Exception as e:
+            return False, f"Backup failed: {e}"
+
+    def apply_ini(self, folder_name):
+        source_folder = self.src_dir / folder_name
+        
+        # Step 1: Backup
+        success, msg = self.backup_inis()
+        if not success:
+            messagebox.showwarning("Backup Warning", f"Proceeding without backup: {msg}")
+        else:
+            self.set_status(msg)
+
+        # Step 2: Apply
+        try:
+            count = 0
+            for ini_file in source_folder.glob("*.ini"):
+                shutil.copy2(ini_file, self.dest_dir)
+                count += 1
+            
+            self.set_status(f"Success: Applied {count} INI files from '{folder_name}'")
+            messagebox.showinfo("Success", f"Applied {count} INI files successfully.")
+        except Exception as e:
+            self.set_status(f"Error applying INI: {e}")
+            messagebox.showerror("Error", f"Failed to apply INI:\n{e}")
+
+    def set_status(self, text):
+        self.status_label.configure(text=text)
+
+    def open_source(self):
+        if self.src_dir.exists():
+            subprocess.run(['explorer', str(self.src_dir)])
+        else:
+            messagebox.showerror("Error", "Source directory does not exist.")
+
+    def open_dest(self):
+        if self.dest_dir.exists():
+            subprocess.run(['explorer', str(self.dest_dir)])
+        else:
+            messagebox.showerror("Error", "Destination directory does not exist.")
 
 if __name__ == "__main__":
-    create_gui()
+    app = INIArkitect()
+    app.mainloop()
+
